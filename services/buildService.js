@@ -2,7 +2,7 @@
 const { execSync } = require("child_process");
 
 function buildAndRun(appName, userId, fullPath) {
-  const containerName = `${appName}-${userId}`;
+  const containerName = `${appName}`;
   const imageName = containerName;
 
   // Build image

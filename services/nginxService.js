@@ -45,9 +45,11 @@ function ensureNginxProxy() {
  * @param {string} domain - main domain (example.com)
  * @returns {string} full URL of the deployed app
  */
-function updateProxy(appName, domain) {
-  const serverName = `${appName}.${domain}`;
+function updateProxy(appName, domain,type,port,customDomain) {
+  const serverName = customDomain ? customDomain : `${appName}.${domain}`;
   const configPath = path.join(HOST_CONF_DIR, `${appName}.conf`);
+  const targetPort = type === 'backend' ? port : 80;
+
 
   // Nginx server block with correct escaping
   const serverBlock = `
@@ -56,7 +58,7 @@ server {
     server_name ${serverName};
 
     location / {
-        proxy_pass http://${appName}:80;
+        proxy_pass http://${appName}:${targetPort};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
