@@ -38,10 +38,7 @@ const userShcema = new mongoose.Schema({
         enum: ['user', 'doctor', 'admin'],
         default: 'user',
     },
-    projects: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Project'
-    }],
+
     otp: {
         type: Number,
     },
