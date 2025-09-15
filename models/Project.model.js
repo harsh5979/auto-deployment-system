@@ -39,7 +39,8 @@ const projectSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-projectSchema.index({ appName: 1 });
+projectSchema.index({ owner: 1, appName: 1 }, { unique: true });
+
 
 // ✅ Prevent OverwriteModelError on nodemon reload
 module.exports = mongoose.models.Project || mongoose.model("Project", projectSchema);

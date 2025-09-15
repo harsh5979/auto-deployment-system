@@ -15,7 +15,7 @@ function cloneRepo(repoUrl, userId, appName) {
     throw new Error("repoUrl, userId, and appName are required");
   }
 
-  const homeDir = "/home"                    // e.g. /home/ubuntu
+  const homeDir = "/home/apps"                    // e.g. /home/ubuntu
   const userDir = path.join(homeDir, userId);        // /home/ubuntu/<userId>
   const appPath = path.join(userDir, appName);       // /home/ubuntu/<userId>/<appName>
 

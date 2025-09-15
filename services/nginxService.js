@@ -1,15 +1,9 @@
-const fs = require("fs");
-const path = require("path");
+// services/nginxService.js
 const { execSync } = require("child_process");
 
 const NGINX_PROXY_CONTAINER = "nginx-proxy";
+const ACME_CONTAINER = "nginx-proxy-acme";
 const PROXY_NETWORK = "proxy-net";
-
-// Host folder for nginx configs (mounted to container)
-const HOST_CONF_DIR = path.join(__dirname, "../nginx/conf.d");
-if (!fs.existsSync(HOST_CONF_DIR)) {
-  fs.mkdirSync(HOST_CONF_DIR, { recursive: true });
-}
 
 /**
  * Ensure Docker network exists
@@ -22,7 +16,7 @@ function ensureProxyNetwork() {
 }
 
 /**
- * Ensure nginx proxy container is running
+ * Ensure nginx-proxy + letsencrypt companion are running
  */
 function ensureNginxProxy() {
   try {
@@ -31,63 +25,32 @@ function ensureNginxProxy() {
       shell: true,
     });
   } catch {
-    // Run nginx proxy container if it doesn't exist
+    // Create volumes for SSL certs
+    execSync(`docker volume create nginx_certs`, { stdio: "inherit", shell: true });
+    execSync(`docker volume create nginx_vhost`, { stdio: "inherit", shell: true });
+    execSync(`docker volume create nginx_html`, { stdio: "inherit", shell: true });
+
+    // Run nginx-proxy
     execSync(
-      `docker run -d --name ${NGINX_PROXY_CONTAINER} --network ${PROXY_NETWORK} -p 80:80 -v ${HOST_CONF_DIR}:/etc/nginx/conf.d nginx:alpine`,
+      `docker run -d --name ${NGINX_PROXY_CONTAINER} --network ${PROXY_NETWORK} \
+        -p 80:80 -p 443:443 \
+        -v nginx_certs:/etc/nginx/certs \
+        -v nginx_vhost:/etc/nginx/vhost.d \
+        -v nginx_html:/usr/share/nginx/html \
+        -v /var/run/docker.sock:/tmp/docker.sock:ro \
+        jwilder/nginx-proxy`,
+      { stdio: "inherit", shell: true }
+    );
+
+    // Run letsencrypt companion
+    execSync(
+      `docker run -d --name ${ACME_CONTAINER} --network ${PROXY_NETWORK} \
+        --volumes-from ${NGINX_PROXY_CONTAINER} \
+        -v /var/run/docker.sock:/var/run/docker.sock:ro \
+        jrcs/letsencrypt-nginx-proxy-companion`,
       { stdio: "inherit", shell: true }
     );
   }
 }
 
-/**
- * Add or update proxy config for a container
- * @param {string} appName - container name
- * @param {string} domain - main domain (example.com)
- * @returns {string} full URL of the deployed app
- */
-function updateProxy(appName, domain,type,port,customDomain) {
-  const serverName = customDomain ? customDomain : `${appName}.${domain}`;
-  const configPath = path.join(HOST_CONF_DIR, `${appName}.conf`);
-  const targetPort = type === 'backend' ? port : 80;
-
-
-  // Nginx server block with correct escaping
-  const serverBlock = `
-server {
-    listen 80;
-    server_name ${serverName};
-
-    location / {
-        proxy_pass http://${appName}:${targetPort};
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-  `.trim();
-
-  // Write config to host folder (mounted to container)
-  fs.writeFileSync(configPath, serverBlock, "utf8");
-
-  // Test Nginx config inside container
-  try {
-    execSync(`sudo docker exec ${NGINX_PROXY_CONTAINER} nginx -t`, {
-      stdio: "inherit",
-      shell: true,
-    });
-  } catch (err) {
-    console.error("Nginx config test failed. Check generated file:", configPath);
-    throw new Error("Failed to test nginx config, aborting reload");
-  }
-
-  // Reload nginx inside container
-  execSync(`sudo docker exec ${NGINX_PROXY_CONTAINER} nginx -s reload`, {
-    stdio: "inherit",
-    shell: true,
-  });
-
-  return `http://${serverName}`;
-}
-
-module.exports = { ensureProxyNetwork, ensureNginxProxy, updateProxy };
+module.exports = { ensureProxyNetwork, ensureNginxProxy };

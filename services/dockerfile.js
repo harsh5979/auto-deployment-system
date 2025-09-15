@@ -19,14 +19,14 @@ function generateDockerFiles(fullPath) {
     (pkg.devDependencies && pkg.devDependencies.vite);
 
   let dockerfile = "";
-  var outputDir = "dist";
+  let outputDir = "dist";
 
   if (isFrontend) {
     // Detect build folder
     // outputDir = fs.existsSync(path.join(fullPath, "dist")) ? "dist" : "build";
 
     dockerfile = `
-FROM node:20 AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm install --legacy-peer-deps
@@ -45,10 +45,10 @@ CMD ["nginx","-g","daemon off;"]
 server {
   listen 80;
   root /usr/share/nginx/html;
-  index index.html;
+  index index.html index.htm;
 
   location / {
-    try_files $uri /index.html;
+      try_files $uri $uri/ /index.html;
   }
 }
     `.trim();
@@ -60,7 +60,7 @@ server {
     const entryFile = pkg.main || "server.js";
 
     dockerfile = `
-FROM node:20
+FROM node:20-alpine
 WORKDIR /app
 COPY package*.json ./
 RUN npm install --legacy-peer-deps

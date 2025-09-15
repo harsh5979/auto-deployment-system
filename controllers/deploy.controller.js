@@ -7,8 +7,10 @@ const { addLog } = require("../helpers/logsShow");
 const AdminModel = require("../models/Admin.model");
 
 exports.deployApp = async (req, res) => {
-  const { repoUrl, appName, type, port, customDomain, env } = req.body;
+  const { repoUrl, appNames, type, port, customDomain, env } = req.body;
   const userId = req.userId;
+  const appName = appNames?.trim().toLowerCase().replace(/\s+/g, '');
+ 
 
   if (!repoUrl || !userId || !appName || !type) {
     return res.status(400).json({ error: "Missing repoUrl, userId, appName or type" });
@@ -62,7 +64,7 @@ exports.deployApp = async (req, res) => {
 
     try {
       await addLog(project._id, "Cloning repository...");
-      const deployedUrl = await handleDeploy(repoUrl, userId, appName, type, port, customDomain);
+      const deployedUrl = await handleDeploy(repoUrl, userId, appName, type, port,env, customDomain);
 
       await addLog(project._id, "Deployment completed successfully ✅");
 

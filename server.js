@@ -3,6 +3,7 @@ const express = require('express')
 const cors = require('cors');
 const deployRoutes = require('./routes/deploy.route');
 const userRoutes = require('./routes/user.route')
+const adminRoutes = require('./routes/admin.routes')
 const { connectDB } = require('./db');
 const cookieParser = require("cookie-parser");
 
@@ -11,7 +12,7 @@ const PORT = 3000;
 
 app.use(cors(
   {
-    origin: "http://10.162.119.76:5173",
+    origin: process.env.CLIENT_URL,
     credentials: true,
   }
 ));
@@ -20,6 +21,7 @@ app.use(cookieParser());
 
 app.use('/v1', userRoutes)
 app.use('/api', deployRoutes);
+app.use('/v2',adminRoutes)
 
 app.listen(PORT, async () => {
   await connectDB();
