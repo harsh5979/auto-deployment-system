@@ -67,8 +67,11 @@ services:
       - VIRTUAL_HOST=app.emessmodasa.site
       - LETSENCRYPT_HOST=app.emessmodasa.site
       - LETSENCRYPT_EMAIL=harshprajapati8583@email.com
+    volumes:
+      - /home/iomd/frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - nginx-proxy
+
 
 volumes:
   nginx_certs:

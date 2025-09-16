@@ -5,12 +5,13 @@ const { cleanupDeployment } = require("../services/cleanupDeployment");
 
 const { addLog } = require("../helpers/logsShow");
 const AdminModel = require("../models/Admin.model");
+const ProjectModel = require("../models/Project.model");
 
 exports.deployApp = async (req, res) => {
   const { repoUrl, appNames, type, port, customDomain, env } = req.body;
   const userId = req.userId;
   const appName = appNames?.trim().toLowerCase().replace(/\s+/g, '');
- 
+
 
   if (!repoUrl || !userId || !appName || !type) {
     return res.status(400).json({ error: "Missing repoUrl, userId, appName or type" });
@@ -64,7 +65,7 @@ exports.deployApp = async (req, res) => {
 
     try {
       await addLog(project._id, "Cloning repository...");
-      const deployedUrl = await handleDeploy(repoUrl, userId, appName, type, port,env, customDomain);
+      const deployedUrl = await handleDeploy(repoUrl, userId, appName, type, port, env, customDomain);
 
       await addLog(project._id, "Deployment completed successfully ✅");
 
@@ -134,3 +135,23 @@ exports.getLogs = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch logs" });
   }
 }
+
+
+exports.checkAppname = async (req, res) => {
+
+  const { appName } = req.body;
+
+  if (!appName) return res.json({ valid: false, message: "App Name is required" });
+
+  // Example: check if appName exists in DB
+  const exists = await ProjectModel.findOne({ appName });
+  if (exists) return res.json({ valid: false, message: "App Name already exists" });
+
+  // Optional: regex validation
+  const validFormat = /^[a-zA-Z0-9-]+$/.test(appName);
+  if (!validFormat) return res.json({ valid: false, message: "Invalid App Name format. only Letters and '-' are allowed." });
+
+  return res.json({ valid: true, message: `${appName} Name is available` });
+}
+
+
