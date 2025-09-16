@@ -57,7 +57,12 @@ server {
 
   } else {
     // Backend
-    const entryFile = pkg.main || "server.js";
+    let entryFile ;
+    if (!entryFile) {
+      // Try to auto-detect common entry files
+      const candidates = ["server.js", "index.js", "app.js"];
+      entryFile = candidates.find(f => fs.existsSync(path.join(fullPath, f))) || "server.js";
+    }
 
     dockerfile = `
 FROM node:20-alpine

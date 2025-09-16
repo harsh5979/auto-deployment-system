@@ -28,16 +28,16 @@ exports.deployApp = async (req, res) => {
     if (admin && !admin.allowNewProjects) {
       return res.status(503).json({
         success: false,
-        message: "Project creation temporarily disabled due to server load. Please try again later.",
+        error: "Project creation temporarily disabled due to server load. Please try again later.",
       });
     }
 
     // 🚫 optional: limit projects per user
-    const userProjects = await Project.countDocuments({ owner: userId });
+    const userProjects = await Project.countDocuments({ owner: userId , status: "running" });
     if (admin && userProjects >= admin.maxProjectsPerUser) {
       return res.status(403).json({
         success: false,
-        message: `You can only create up to ${admin.maxProjectsPerUser} projects.`,
+        error: `You can only create up to ${admin.maxProjectsPerUser} projects.`,
       });
     }
 
@@ -59,7 +59,7 @@ exports.deployApp = async (req, res) => {
     // Respond early → frontend can start polling logs
     res.status(202).json({
       success: true,
-      message: "Deployment started",
+      error: "Deployment started",
       projectId: project._id,
     });
 
@@ -115,6 +115,22 @@ exports.getUserProjects = async (req, res) => {
     console.error("Fetch Projects Error:", err);
     res.status(500).json({ error: "Failed to fetch projects" });
   }
+}
+exports.getProject = async (req, res) => {
+  const { projectId } = req.params;
+  const userId = req.userId;
+
+  try {
+    const project = await Project.findOne({ _id: projectId, owner: userId }).select(' -deployHistory -__v').lean();
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    res.status(200).json({ project });
+  } catch (err) {
+    console.error("Fetch Project Error:", err);
+    res.status(500).json({ error: "Failed to fetch project" });
+  }
+ 
 }
 exports.getLogs = async (req, res) => {
   const { projectId } = req.params;
