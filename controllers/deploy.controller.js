@@ -6,6 +6,7 @@ const { cleanupDeployment } = require("../services/cleanupDeployment");
 const { addLog } = require("../helpers/logsShow");
 const AdminModel = require("../models/Admin.model");
 const ProjectModel = require("../models/Project.model");
+const { pauseDeployment } = require("../services/pauseService");
 
 exports.deployApp = async (req, res) => {
   const { repoUrl, appNames, type, port, customDomain, env } = req.body;
@@ -169,5 +170,42 @@ exports.checkAppname = async (req, res) => {
 
   return res.json({ valid: true, message: `${appName} Name is available` });
 }
+
+
+exports.editProject = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+    const updated = await Project.findOneAndUpdate(
+      { _id: projectId, userId: req.user.id },
+      { $set: req.body },
+      { new: true }
+    );
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.pauseProject = async (req, res) => {
+  try {
+    const userId= req.userId;
+    const { id } = req.params;
+    const result = await pauseDeployment(userId, appName);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.deleteProject = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+     const result = await deleteDeployment(userId, appName);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
 
 
