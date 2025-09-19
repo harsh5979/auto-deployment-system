@@ -9,7 +9,7 @@ const cookieParser = require("cookie-parser");
 
 const app = express();
 const PORT = 3000;
-
+const host = '10.121.31.76'
 app.use(cors(
   {
     origin: process.env.CLIENT_URL,
